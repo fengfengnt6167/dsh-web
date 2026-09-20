@@ -16,7 +16,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { mountOnce } from './mount-once.ts'
 import { findDshBinary, CliGateway } from './host/gateway.ts'
-import { profileExists, resolveProfile } from './host/profile.ts'
+import { profileExists, resolveProfile, type DesktopCurrentProfile } from './host/profile.ts'
 import { makeGatewayRoutes } from './host/routes.ts'
 
 /** Stable cordis plugin name (matches cordis.patch.yml insert id). */
@@ -29,12 +29,12 @@ export const inject = ['webServer']
 export const apply = mountOnce('@linxin666/dsh-client-ui-plugin-manager', applyImpl)
 
 function applyImpl(ctx: Context): void {
-  // Gateway mode needs the boot profile; on hosts without one (desktop
-  // launches that do not pass --profile) the official channels serve the
-  // browser half, so this half stays dormant.
+  // The desktop service identifies this exact host generation. CLI hosts
+  // have no such service and retain argv/environment profile discovery.
   let facts
   try {
-    facts = resolveProfile()
+    const profiles = ctx.get('desktopProfiles') as { readonly current: DesktopCurrentProfile } | undefined
+    facts = resolveProfile(undefined, undefined, profiles?.current)
   } catch (error) {
     console.error('[plugin-manager]', error instanceof Error ? error.message : String(error))
     return

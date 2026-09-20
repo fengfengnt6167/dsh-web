@@ -7,6 +7,27 @@ import { desktopSelectedProfile, resolveProfile } from '../src/host/profile.ts'
 describe('resolveProfile', () => {
   const env = { DSH_HOME: '/tmp/dsh-home' } as NodeJS.ProcessEnv
 
+  it('uses the desktop service profile directory ahead of argv and environment guesses', () => {
+    const current = { name: 'active-desktop', dir: join('/tmp', 'custom-desktop-profile') }
+    const facts = resolveProfile(['node', '--profile', 'cli-profile'], {
+      ...env,
+      DSH_PROFILE: 'environment-profile',
+      DSH_DESKTOP_DEFAULT_PROFILE: 'stale-desktop-profile',
+    }, current)
+    expect(facts).toEqual({
+      profileName: current.name,
+      profileDir: current.dir,
+      patchPath: join(current.dir, 'cordis.patch.yml'),
+      packageJsonPath: join(current.dir, 'package.json'),
+      desktop: true,
+    })
+  })
+
+  it('keeps CLI fallback when the optional desktop service is absent', () => {
+    expect(resolveProfile(['node', '--profile', 'web'], env, undefined))
+      .toEqual(resolveProfile(['node', '--profile', 'web'], env))
+  })
+
   it('prefers an explicit --profile flag', () => {
     const facts = resolveProfile(['node', 'bin.js', '--profile', 'web'], env)
     expect(facts.profileName).toBe('web')
@@ -95,4 +116,3 @@ describe('readProfileManifest and stripBom', () => {
     }
   })
 })
-

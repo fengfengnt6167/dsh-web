@@ -22,8 +22,14 @@ export interface ProfileFacts {
   patchPath: string
   /** Absolute path of the profile's package.json. */
   packageJsonPath: string
-  /** True when the profile was inferred from the packaged desktop host. */
+  /** True when the profile belongs to the packaged desktop host. */
   desktop?: boolean
+}
+
+/** Minimal launcher-owned identity; no dependency on a desktop implementation. */
+export interface DesktopCurrentProfile {
+  readonly name: string
+  readonly dir: string
 }
 
 /**
@@ -62,9 +68,19 @@ export function desktopSelectedProfile(env: NodeJS.ProcessEnv = process.env): st
  * web app's argv is the reliable source on every CLI-launched host.
  * @param argv - process argv (test seam).
  * @param env - process environment (test seam).
+ * @param current - authoritative desktop service identity, when available.
  * @returns the resolved profile facts.
  */
-export function resolveProfile(argv: readonly string[] = process.argv, env: NodeJS.ProcessEnv = process.env): ProfileFacts {
+export function resolveProfile(argv: readonly string[] = process.argv, env: NodeJS.ProcessEnv = process.env, current?: DesktopCurrentProfile): ProfileFacts {
+  if (current) {
+    return {
+      profileName: current.name,
+      profileDir: current.dir,
+      patchPath: join(current.dir, 'cordis.patch.yml'),
+      packageJsonPath: join(current.dir, 'package.json'),
+      desktop: true,
+    }
+  }
   const flagIndex = argv.indexOf('--profile')
   let name: string | undefined
   let desktop = false
